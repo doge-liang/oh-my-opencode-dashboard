@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import * as path from "node:path"
 import type { DashboardStore } from "./dashboard"
+import { buildDashboardPayloadCopilotCli } from "./dashboard"
 import { assertAllowedPath } from "../ingest/paths"
 import { getMessageDir, getStorageRoots } from "../ingest/session"
 import { deriveToolCalls, MAX_TOOL_CALL_MESSAGES, MAX_TOOL_CALLS } from "../ingest/tool-calls"
@@ -41,7 +42,6 @@ export function createApi(opts: {
       
       // Route by source kind
       if (source.kind === "copilot-cli") {
-        const { buildDashboardPayloadCopilotCli } = require("./dashboard")
         const payload = buildDashboardPayloadCopilotCli({
           sessionId: source.projectRoot, // For Copilot CLI, projectRoot is the sessionId
           nowMs: Date.now(),
@@ -62,7 +62,6 @@ export function createApi(opts: {
       if (source) {
         // Route by source kind
         if (source.kind === "copilot-cli") {
-          const { buildDashboardPayloadCopilotCli } = require("./dashboard")
           const payload = buildDashboardPayloadCopilotCli({
             sessionId: source.projectRoot, // For Copilot CLI, projectRoot is the sessionId
             nowMs: Date.now(),

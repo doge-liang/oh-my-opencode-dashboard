@@ -6,7 +6,8 @@ import { parseArgs } from 'util'
 import { createApi } from "./api"
 import { createDashboardStore, type DashboardStore } from "./dashboard"
 import { getLegacyStorageRootForBackend, selectStorageBackend } from "../ingest/storage-backend"
-import { addOrUpdateSource, listSources } from "../ingest/sources-registry"
+import { addOrUpdateSource, listSources, addCopilotCliSource } from "../ingest/sources-registry"
+import { listCopilotSessions } from "../ingest/copilot-cli/session"
 
 function isBunxInvocation(argv: string[]): boolean {
   if (process.env.BUN_INSTALL_CACHE_DIR) return true
@@ -67,8 +68,6 @@ const storageBackend = selectStorageBackend()
 const storageRoot = getLegacyStorageRootForBackend(storageBackend)
 
 // Auto-register recent Copilot CLI sessions
-const { listCopilotSessions } = require("../ingest/copilot-cli/session")
-const { addCopilotCliSource } = require("../ingest/sources-registry")
 try {
   const copilotSessions = listCopilotSessions()
   // Register up to 5 most recent Copilot CLI sessions

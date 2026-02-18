@@ -16,6 +16,9 @@ import {
   pickActiveSessionIdSqlite,
 } from "../ingest/sqlite-derive"
 import { readMainSessionMetasSqlite } from "../ingest/storage-backend"
+import { readWorkspaceMetadata } from "../ingest/copilot-cli/session"
+import { deriveMainSessionView as deriveCopilotMainSessionView } from "../ingest/copilot-cli/events"
+import { deriveCopilotTasks } from "../ingest/copilot-cli/tasks"
 
 export type DashboardPayload = {
   mainSession: {
@@ -473,15 +476,10 @@ export function buildDashboardPayloadCopilotCli(opts: {
 }): DashboardPayload {
   const nowMs = opts.nowMs ?? Date.now()
   
-  // Import Copilot CLI modules
-  const { readWorkspaceMetadata } = require("../ingest/copilot-cli/session")
-  const { deriveMainSessionView } = require("../ingest/copilot-cli/events")
-  const { deriveCopilotTasks } = require("../ingest/copilot-cli/tasks")
-  
   const workspace = readWorkspaceMetadata(opts.sessionId, opts.stateDirOverride)
   const sessionLabel = workspace?.summary ?? opts.sessionId
   
-  const main = deriveMainSessionView({
+  const main = deriveCopilotMainSessionView({
     sessionId: opts.sessionId,
     sessionLabel,
     stateDirOverride: opts.stateDirOverride,
