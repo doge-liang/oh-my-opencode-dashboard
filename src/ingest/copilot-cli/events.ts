@@ -4,6 +4,11 @@ import { getSessionDir } from "./paths"
 import type { MainSessionView } from "../session"
 
 /**
+ * Threshold in milliseconds to consider a session as "busy" vs "idle"
+ */
+const BUSY_THRESHOLD_MS = 15_000 // 15 seconds
+
+/**
  * Copilot CLI event types from events.jsonl
  */
 export type CopilotEvent = {
@@ -140,7 +145,7 @@ export function deriveMainSessionView(opts: {
   // Determine status
   if (activeToolCalls.size > 0) {
     status = "running_tool"
-  } else if (lastUpdated && nowMs - lastUpdated <= 15_000) {
+  } else if (lastUpdated && nowMs - lastUpdated <= BUSY_THRESHOLD_MS) {
     status = "busy"
   } else if (lastUpdated) {
     status = "idle"

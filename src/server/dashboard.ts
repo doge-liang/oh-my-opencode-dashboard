@@ -516,7 +516,7 @@ export function buildDashboardPayloadCopilotCli(opts: {
         : "unknown",
     toolCalls: tasks.length,
     lastTool: main.currentTool ?? "-",
-    timeline: formatTimeline(workspace?.created_at ?? null, nowMs),
+    timeline: formatTimeline(workspace?.created_at ?? 0, nowMs),
     sessionId: opts.sessionId,
   }]
   
