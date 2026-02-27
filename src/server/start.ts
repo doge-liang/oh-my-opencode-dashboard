@@ -7,6 +7,7 @@ import { createApi } from "./api"
 import { createDashboardStore, type DashboardStore } from "./dashboard"
 import { getLegacyStorageRootForBackend, selectStorageBackend } from "../ingest/storage-backend"
 import { addOrUpdateSource, listSources } from "../ingest/sources-registry"
+import { findAvailablePort } from "../cli/ports"
 
 function isBunxInvocation(argv: string[]): boolean {
   if (process.env.BUN_INSTALL_CACHE_DIR) return true
@@ -26,8 +27,6 @@ const { values, positionals } = parseArgs({
 })
 
 const project = values.project ?? process.cwd()
-
-const port = parseInt(values.port || '51234')
 
 const cleanedPositionals = [...positionals]
 if (cleanedPositionals[0] === Bun.argv[0]) cleanedPositionals.shift()
@@ -61,109 +60,127 @@ if (command === "add") {
   process.exit(0)
 }
 
-const app = new Hono()
-
-const storageBackend = selectStorageBackend()
-const storageRoot = getLegacyStorageRootForBackend(storageBackend)
-
-if (isBunxInvocation(Bun.argv) && storageBackend.kind === "sqlite" && listSources(storageRoot).length === 0) {
-  console.log("Please make sure you have added directories you want to track (OpenCode SQLite update). Run:")
-  console.log('bunx oh-my-opencode-dashboard@latest add --name "My Project"')
-}
-
-const store = createDashboardStore({
-  projectRoot: project,
-  storageRoot,
-  storageBackend,
-  watch: true,
-  pollIntervalMs: 2000,
-})
-
-const storeBySourceId = new Map<string, DashboardStore>()
-const storeByProjectRoot = new Map<string, DashboardStore>([[project, store]])
-
-const getStoreForSource = ({ sourceId, projectRoot }: { sourceId: string; projectRoot: string }) => {
-  const existing = storeBySourceId.get(sourceId)
-  if (existing) return existing
-
-  const byRoot = storeByProjectRoot.get(projectRoot)
-  if (byRoot) {
-    storeBySourceId.set(sourceId, byRoot)
-    return byRoot
+async function main() {
+  const preferredPort = parseInt(values.port || '51234')
+  const host = '127.0.0.1'
+  
+  let port: number
+  try {
+    port = await findAvailablePort({ host, preferredPort })
+    if (port !== preferredPort) {
+      console.log(`Port ${preferredPort} is busy; using ${port} instead`)
+    }
+  } catch (err) {
+    console.error(`Failed to find an available port starting from ${preferredPort}`)
+    process.exit(1)
   }
 
-  const created = createDashboardStore({
-    projectRoot,
+  const app = new Hono()
+
+  const storageBackend = selectStorageBackend()
+  const storageRoot = getLegacyStorageRootForBackend(storageBackend)
+
+  if (isBunxInvocation(Bun.argv) && storageBackend.kind === "sqlite" && listSources(storageRoot).length === 0) {
+    console.log("Please make sure you have added directories you want to track (OpenCode SQLite update). Run:")
+    console.log('bunx oh-my-opencode-dashboard@latest add --name "My Project"')
+  }
+
+  const store = createDashboardStore({
+    projectRoot: project,
     storageRoot,
     storageBackend,
     watch: true,
     pollIntervalMs: 2000,
   })
-  storeBySourceId.set(sourceId, created)
-  storeByProjectRoot.set(projectRoot, created)
-  return created
-}
 
-app.route('/api', createApi({ store, storageRoot, projectRoot: project, storageBackend, getStoreForSource }))
+  const storeBySourceId = new Map<string, DashboardStore>()
+  const storeByProjectRoot = new Map<string, DashboardStore>([[project, store]])
 
-const distRoot = join(import.meta.dir, '../../dist')
+  const getStoreForSource = ({ sourceId, projectRoot }: { sourceId: string; projectRoot: string }) => {
+    const existing = storeBySourceId.get(sourceId)
+    if (existing) return existing
 
-// SPA fallback middleware
-app.use('*', async (c, next) => {
-  const path = c.req.path
-  
-  // Skip API routes - let them pass through
-  if (path.startsWith('/api/')) {
-    return await next()
-  }
-  
-  // For non-API routes without extensions, serve index.html
-  if (!path.includes('.')) {
-    const indexFile = Bun.file(join(distRoot, 'index.html'))
-    if (await indexFile.exists()) {
-      return c.html(await indexFile.text())
+    const byRoot = storeByProjectRoot.get(projectRoot)
+    if (byRoot) {
+      storeBySourceId.set(sourceId, byRoot)
+      return byRoot
     }
-    return c.notFound()
-  }
-  
-  // For static files with extensions, try to serve them
-  const relativePath = path.startsWith('/') ? path.slice(1) : path
-  const file = Bun.file(join(distRoot, relativePath))
-  if (await file.exists()) {
-    const ext = path.split('.').pop() || ''
-    const contentType = getContentType(ext)
-    return new Response(file, {
-      headers: { 'Content-Type': contentType }
-    })
-  }
-  
-  return c.notFound()
-})
 
-function getContentType(ext: string): string {
-  const types: Record<string, string> = {
-    'html': 'text/html',
-    'js': 'application/javascript',
-    'css': 'text/css',
-    'json': 'application/json',
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'gif': 'image/gif',
-    'svg': 'image/svg+xml',
-    'ico': 'image/x-icon',
-    'woff': 'font/woff',
-    'woff2': 'font/woff2',
-    'ttf': 'font/ttf',
-    'eot': 'application/vnd.ms-fontobject',
+    const created = createDashboardStore({
+      projectRoot,
+      storageRoot,
+      storageBackend,
+      watch: true,
+      pollIntervalMs: 2000,
+    })
+    storeBySourceId.set(sourceId, created)
+    storeByProjectRoot.set(projectRoot, created)
+    return created
   }
-  return types[ext] || 'text/plain'
+
+  app.route('/api', createApi({ store, storageRoot, projectRoot: project, storageBackend, getStoreForSource }))
+
+  const distRoot = join(import.meta.dir, '../../dist')
+
+  // SPA fallback middleware
+  app.use('*', async (c, next) => {
+    const path = c.req.path
+    
+    // Skip API routes - let them pass through
+    if (path.startsWith('/api/')) {
+      return await next()
+    }
+    
+    // For non-API routes without extensions, serve index.html
+    if (!path.includes('.')) {
+      const indexFile = Bun.file(join(distRoot, 'index.html'))
+      if (await indexFile.exists()) {
+        return c.html(await indexFile.text())
+      }
+      return c.notFound()
+    }
+    
+    // For static files with extensions, try to serve them
+    const relativePath = path.startsWith('/') ? path.slice(1) : path
+    const file = Bun.file(join(distRoot, relativePath))
+    if (await file.exists()) {
+      const ext = path.split('.').pop() || ''
+      const contentType = getContentType(ext)
+      return new Response(file, {
+        headers: { 'Content-Type': contentType }
+      })
+    }
+    
+    return c.notFound()
+  })
+
+  function getContentType(ext: string): string {
+    const types: Record<string, string> = {
+      'html': 'text/html',
+      'js': 'application/javascript',
+      'css': 'text/css',
+      'json': 'application/json',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'svg': 'image/svg+xml',
+      'ico': 'image/x-icon',
+      'woff': 'font/woff',
+      'woff2': 'font/woff2',
+      'ttf': 'font/ttf',
+      'eot': 'application/vnd.ms-fontobject',
+    }
+    return types[ext] || 'text/plain'
+  }
+
+  Bun.serve({
+    fetch: app.fetch,
+    hostname: host,
+    port,
+  })
+
+  console.log(`Server running on http://${host}:${port}`)
 }
 
-Bun.serve({
-  fetch: app.fetch,
-  hostname: '127.0.0.1',
-  port,
-})
-
-console.log(`Server running on http://127.0.0.1:${port}`)
+main()
