@@ -4,9 +4,8 @@
     "opencode-dashboard": {
       "type": "local",
       "command": [
-        "bun",
-        "run",
-        "mcp",
+        "bunx",
+        "github:doge-liang/oh-my-opencode-dashboard",
         "--project",
         "D:/Workspace/Project/oh-my-opencode-dashboard"
       ],
