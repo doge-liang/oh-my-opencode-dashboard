@@ -5,9 +5,7 @@
       "type": "local",
       "command": [
         "bunx",
-        "github:doge-liang/oh-my-opencode-dashboard",
-        "--project",
-        "D:/Workspace/Project/oh-my-opencode-dashboard"
+        "github:doge-liang/oh-my-opencode-dashboard"
       ],
       "enabled": true
     }

@@ -3,8 +3,9 @@
  * MCP Server Bin Entry Point
  * 
  * Usage:
- *   bunx oh-my-opencode-dashboard --project /path/to/project
- *   npx oh-my-opencode-dashboard --project /path/to/project
+ *   bunx oh-my-opencode-dashboard                    # Uses current directory as project
+ *   bunx oh-my-opencode-dashboard --project /path    # Uses specified directory
+ *   npx oh-my-opencode-dashboard --project /path
  */
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -16,6 +17,7 @@ import { spawn } from "child_process";
 const args = Bun.argv;
 const projectIndex = args.indexOf("--project");
 
+// Use specified project path, or default to current working directory
 let projectRoot: string;
 if (projectIndex !== -1 && args[projectIndex + 1]) {
   projectRoot = args[projectIndex + 1];
