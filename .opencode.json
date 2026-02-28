@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "opencode-dashboard": {
+      "type": "stdio",
+      "command": "bun",
+      "args": [
+        "run",
+        "mcp",
+        "--project",
+        "D:/Workspace/Project/oh-my-opencode-dashboard"
+      ]
+    }
+  }
+}
