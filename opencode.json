@@ -1,14 +1,16 @@
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "opencode-dashboard": {
-      "type": "stdio",
-      "command": "bun",
-      "args": [
+      "type": "local",
+      "command": [
+        "bun",
         "run",
         "mcp",
         "--project",
         "D:/Workspace/Project/oh-my-opencode-dashboard"
-      ]
+      ],
+      "enabled": true
     }
   }
 }

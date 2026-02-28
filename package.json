@@ -1,16 +1,18 @@
 {
   "name": "oh-my-opencode-dashboard",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Local-only, read-only dashboard for viewing OhMyOpenCode agent progress",
   "license": "SUL-1.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/WilliamJudge94/oh-my-opencode-dashboard"
+    "url": "https://github.com/doge-liang/oh-my-opencode-dashboard"
   },
   "type": "module",
   "bin": {
-    "oh-my-opencode-dashboard": "./src/server/start.ts"
+    "oh-my-opencode-dashboard": "./src/server/mcp/bin.ts",
+    "omo-dashboard": "./src/server/mcp/bin.ts"
   },
+  "main": "./src/server/start.ts",
   "files": [
     "dist",
     "src",
