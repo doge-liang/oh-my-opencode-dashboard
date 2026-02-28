@@ -1640,8 +1640,8 @@ export default function App() {
                 <h2>Plan progress and todos</h2>
                 <span className="muted mono">
                   {planTodosView === "plan"
-                    ? `todos ${todoSummary.completed}/${todoSummary.total || 0}`
-                    : `plan ${data.planProgress.completed}/${data.planProgress.total || 0}`}
+                    ? `plan ${data.planProgress.completed}/${data.planProgress.total || 0}`
+                    : `todos ${todoSummary.completed}/${todoSummary.total || 0}`}
                 </span>
               </div>
               <div className="viewToggle" role="tablist" aria-label="Plan and todos view">
