@@ -1,43 +1,29 @@
 {
   "name": "oh-my-opencode-dashboard",
   "version": "0.5.0",
-  "description": "Local-only, read-only dashboard for viewing OhMyOpenCode agent progress",
+  "description": "MCP server for visualizing OpenCode & OhMyOpenCode Agent progress",
   "license": "SUL-1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/doge-liang/oh-my-opencode-dashboard"
   },
-  "type": "module",
+  "main": "./src/server/start.ts",
+  "module": "./src/server/start.ts",
   "bin": {
     "oh-my-opencode-dashboard": "./src/server/mcp/bin.ts",
     "omo-dashboard": "./src/server/mcp/bin.ts"
   },
-  "main": "./src/server/start.ts",
-  "files": [
-    "dist",
-    "src",
-    "index.html",
-    "vite.config.ts",
-    "tsconfig.json",
-    "dashboard-ui.png",
-    "README.md"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
-  "engines": {
-    "bun": ">=1.1.0"
-  },
   "scripts": {
-    "dev": "bun run src/cli/dev.ts",
-    "dev:api": "bun run src/server/dev.ts",
-    "dev:ui": "vite",
+    "dev": "bun run --watch src/cli/dev.ts",
+    "dev:api": "bun run --watch src/server/start.ts",
+    "dev:ui": "bunx --bun vite --port 5173",
     "build": "bun run build:ui && bun run build:api",
     "build:ui": "vite build",
     "build:api": "bun run src/server/build.ts",
     "prepublishOnly": "bun run build && bun test",
     "start": "bun run src/server/start.ts",
     "mcp": "bun run src/server/mcp/index.ts",
+    "cli:sessions": "bun run src/cli/sessions.ts",
     "test": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -46,15 +32,18 @@
     "hono": "^4.4.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "zod": "^4.3.6"
+    "zod": "^3.25.73"
   },
   "devDependencies": {
-    "@types/react": "^18.2.72",
-    "@types/react-dom": "^18.2.24",
-    "@vitejs/plugin-react": "^4.3.1",
-    "bun-types": "^1.1.20",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.2",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.4.0",
+    "vite": "^5.4.0",
     "vitest": "^1.6.0"
-  }
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "type": "module"
 }
