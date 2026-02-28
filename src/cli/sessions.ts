@@ -3,7 +3,8 @@
  * CLI command to list active sessions and their URLs
  * 
  * Usage:
- *   bun run cli:sessions
+ *   bun run cli:sessions              # Show only running sessions (default)
+ *   bun run cli:sessions --history    # Show all sessions including history
  *   bun run src/cli/sessions.ts
  */
 
@@ -98,6 +99,10 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 async function main() {
+  // Parse command line arguments
+  const args = process.argv.slice(2)
+  const showHistory = args.includes('--history')
+
   const storageRoot = getOpenCodeStorageDir()
   const storage = getStorageRoots(storageRoot)
   
@@ -106,12 +111,6 @@ async function main() {
   // Read all sessions
   const allSessions = readMainSessionMetas(storage.session)
   
-  if (allSessions.length === 0) {
-    console.log('❌ No sessions found')
-    console.log(`   Storage directory: ${storageRoot}`)
-    process.exit(0)
-  }
-  
   // Find running servers
   const host = '127.0.0.1'
   const startPort = 51234
@@ -119,8 +118,6 @@ async function main() {
   
   // Map sessions to running servers (based on directory match)
   const sessionInfos: SessionInfo[] = allSessions.map((session, index) => {
-    // Assign ports round-robin to running servers for display purposes
-    // In reality, we can't know which session maps to which port without additional tracking
     const runningPorts = Array.from(runningServers.keys())
     const assignedPort = index < runningPorts.length ? runningPorts[index] : undefined
     
@@ -131,14 +128,43 @@ async function main() {
     }
   })
   
+  // Filter to only running sessions if --history is not specified
+  const sessionsToDisplay = showHistory 
+    ? sessionInfos 
+    : sessionInfos.filter(s => s.isRunning)
+  
+  if (sessionsToDisplay.length === 0) {
+    console.log('❌ No running sessions found')
+    if (!showHistory && allSessions.length > 0) {
+      console.log(`   (Use --history to see ${allSessions.length} historical sessions)`)
+    }
+    console.log(`   Storage directory: ${storageRoot}`)
+    
+    if (runningServers.size > 0) {
+      console.log()
+      console.log('🌐 Running Dashboard URLs (no session data):')
+      runningServers.forEach((url, port) => {
+        console.log(`   • ${url} (port ${port})`)
+      })
+    }
+    
+    console.log()
+    console.log('💡 To start a new dashboard:')
+    console.log('   bun run start -- --project /path/to/project')
+    process.exit(0)
+  }
+  
   // Display results
-  console.log(`📊 Found ${allSessions.length} session(s) in storage`)
-  console.log(`🌐 Found ${runningServers.size} running server(s)\n`)
+  console.log(`📊 Found ${sessionsToDisplay.length} running session(s)`)
+  if (!showHistory && allSessions.length > sessionsToDisplay.length) {
+    console.log(`   (Use --history to see all ${allSessions.length} sessions)`)
+  }
+  console.log()
   
   console.log('='.repeat(80))
   console.log()
   
-  sessionInfos.forEach((session, index) => {
+  sessionsToDisplay.forEach((session, index) => {
     const number = index + 1
     const status = session.isRunning ? '🟢' : '⚪'
     const title = session.title || 'Untitled Session'
