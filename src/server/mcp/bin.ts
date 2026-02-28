@@ -3,88 +3,108 @@
  * MCP Server Bin Entry Point
  * 
  * Usage:
- *   bunx oh-my-opencode-dashboard                    # Uses current directory as project
- *   bunx oh-my-opencode-dashboard --project /path    # Uses specified directory
- *   npx oh-my-opencode-dashboard --project /path
+ *   oh-my-opencode-dashboard                          # Start MCP with current directory
+ *   oh-my-opencode-dashboard --project /path          # Start MCP with specified directory
+ *   oh-my-opencode-dashboard cli:sessions             # List active sessions
  */
 
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createMcpServer } from "./server.js";
-import { selectStorageBackend, getLegacyStorageRootForBackend } from "../../ingest/storage-backend.js";
 import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Parse command line arguments
-const args = Bun.argv;
-const projectIndex = args.indexOf("--project");
+const args = process.argv.slice(2);
 
-// Use specified project path, or default to current working directory
-let projectRoot: string;
-if (projectIndex !== -1 && args[projectIndex + 1]) {
-  projectRoot = args[projectIndex + 1];
+// Check for subcommands
+if (args[0] === "cli:sessions") {
+  // Run sessions CLI
+  const sessionsScript = join(__dirname, "..", "..", "cli", "sessions.ts");
+  const result = spawn("bun", ["run", sessionsScript], {
+    stdio: "inherit",
+    windowsHide: false,
+  });
+  
+  result.on("exit", (code) => {
+    process.exit(code || 0);
+  });
 } else {
-  projectRoot = process.cwd();
-}
+  // Start MCP Server
+  const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+  const { createMcpServer } = await import("./server.js");
+  const { selectStorageBackend, getLegacyStorageRootForBackend } = await import("../../ingest/storage-backend.js");
 
-const storageBackend = selectStorageBackend();
-const storageRoot = getLegacyStorageRootForBackend(storageBackend);
-
-// Start HTTP server in the background
-console.error("[MCP] Starting HTTP dashboard server...");
-const httpProcess = spawn("bun", ["run", "oh-my-opencode-dashboard", "--project", projectRoot], {
-  detached: true,
-  stdio: ["ignore", "pipe", "pipe"],
-  windowsHide: true,
-});
-
-let serverUrl: string | null = null;
-
-// Capture server URL from output
-httpProcess.stdout?.on("data", (data: Buffer) => {
-  const output = data.toString();
-  const match = output.match(/Server running on (http:\/\/[^\s]+)/);
-  if (match) {
-    serverUrl = match[1];
-    console.error(`[MCP] Dashboard available at: ${serverUrl}`);
-    
-    // Open browser
-    setTimeout(() => {
-      if (serverUrl) {
-        const platform = process.platform;
-        console.error(`[MCP] Opening browser...`);
-        
-        if (platform === "win32") {
-          spawn("cmd", ["/c", "start", serverUrl], { detached: true, stdio: "ignore" });
-        } else if (platform === "darwin") {
-          spawn("open", [serverUrl], { detached: true, stdio: "ignore" });
-        } else {
-          spawn("xdg-open", [serverUrl], { detached: true, stdio: "ignore" });
-        }
-      }
-    }, 1000);
+  // Parse --project argument
+  const projectIndex = args.indexOf("--project");
+  let projectRoot: string;
+  if (projectIndex !== -1 && args[projectIndex + 1]) {
+    projectRoot = args[projectIndex + 1];
+  } else {
+    projectRoot = process.cwd();
   }
-});
 
-httpProcess.stderr?.on("data", (data: Buffer) => {
-  // Forward HTTP server errors to stderr
-  console.error(`[HTTP] ${data.toString().trim()}`);
-});
+  const storageBackend = selectStorageBackend();
+  const storageRoot = getLegacyStorageRootForBackend(storageBackend);
 
-// Create MCP Server
-const server = createMcpServer({
-  projectRoot,
-  storageRoot,
-  storageBackend,
-});
+  // Start HTTP server in the background (use start.ts, not bin.ts!)
+  const startScript = join(__dirname, "..", "start.ts");
+  console.error("[MCP] Starting HTTP dashboard server...");
+  const httpProcess = spawn("bun", ["run", startScript, "--project", projectRoot], {
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  });
 
-// Create stdio transport
-const transport = new StdioServerTransport();
+  let serverUrl: string | null = null;
 
-// Connect and run
-// Note: All logging must go to stderr to avoid polluting stdio protocol
-console.error(`[MCP] Starting MCP server for project: ${projectRoot}`);
-console.error(`[MCP] Storage root: ${storageRoot}`);
-console.error(`[MCP] Storage backend: ${storageBackend.kind}`);
+  // Capture server URL from output
+  httpProcess.stdout?.on("data", (data: Buffer) => {
+    const output = data.toString();
+    const match = output.match(/Server running on (http:\/\/[^\s]+)/);
+    if (match) {
+      serverUrl = match[1];
+      console.error(`[MCP] Dashboard available at: ${serverUrl}`);
+      
+      // Open browser
+      setTimeout(() => {
+        if (serverUrl) {
+          const platform = process.platform;
+          console.error(`[MCP] Opening browser...`);
+          
+          if (platform === "win32") {
+            spawn("cmd", ["/c", "start", serverUrl], { detached: true, stdio: "ignore" });
+          } else if (platform === "darwin") {
+            spawn("open", [serverUrl], { detached: true, stdio: "ignore" });
+          } else {
+            spawn("xdg-open", [serverUrl], { detached: true, stdio: "ignore" });
+          }
+        }
+      }, 1000);
+    }
+  });
 
-await server.connect(transport);
+  httpProcess.stderr?.on("data", (data: Buffer) => {
+    console.error(`[HTTP] ${data.toString().trim()}`);
+  });
 
-console.error("[MCP] Server connected and ready");
+  // Create MCP Server
+  const server = createMcpServer({
+    projectRoot,
+    storageRoot,
+    storageBackend,
+  });
+
+  // Create stdio transport
+  const transport = new StdioServerTransport();
+
+  // Connect and run
+  console.error(`[MCP] Starting MCP server for project: ${projectRoot}`);
+  console.error(`[MCP] Storage root: ${storageRoot}`);
+  console.error(`[MCP] Storage backend: ${storageBackend.kind}`);
+
+  await server.connect(transport);
+
+  console.error("[MCP] Server connected and ready");
+}
