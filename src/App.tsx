@@ -1799,6 +1799,7 @@ export default function App() {
                     <table className="table">
                       <thead>
                         <tr>
+                          <th>AGENT</th>
                           <th>MODEL</th>
                           <th>INPUT</th>
                           <th>OUTPUT</th>
@@ -1809,7 +1810,10 @@ export default function App() {
                       </thead>
                       <tbody>
                         {tokenUsageRowsSorted.map((r) => (
-                          <tr key={r.model}>
+                          <tr key={`${r.agent}:${r.model}`}>
+                            <td className="mono" title={r.agent}>
+                              {r.agent}
+                            </td>
                             <td className="mono" title={r.model}>
                               {r.model}
                             </td>

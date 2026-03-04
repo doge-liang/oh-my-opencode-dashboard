@@ -3,6 +3,7 @@ import * as React from "react";
 import { formatTokenCount } from "./format-token-count";
 
 export type TokenUsageRow = {
+  agent: string;
   model: string;
   input: number;
   output: number;
@@ -45,12 +46,13 @@ export function TokenUsageUi(props: { tokenUsage?: TokenUsage; expanded: boolean
         ),
         expanded && rows.length === 0 ? 
           React.createElement("tr", null,
-            React.createElement("td", { colSpan: 6, className: "muted", style: { padding: 16 } },
+            React.createElement("td", { colSpan: 7, className: "muted", style: { padding: 16 } },
               "No token usage detected yet."
             )
           ) : null,
         expanded ? rows.map((row) =>
-          React.createElement("tr", { key: row.model },
+          React.createElement("tr", { key: `${row.agent}:${row.model}` },
+            React.createElement("td", { className: "mono", title: row.agent }, row.agent),
             React.createElement("td", { className: "mono", title: row.model }, row.model),
             React.createElement("td", { className: "mono" }, formatTokenCount(row.input)),
             React.createElement("td", { className: "mono" }, formatTokenCount(row.output)),

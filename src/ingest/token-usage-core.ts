@@ -1,6 +1,7 @@
 import { extractModelString } from "./model"
 
 export type TokenUsageRow = {
+  agent: string
   model: string
   input: number
   output: number
@@ -47,12 +48,12 @@ function readString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
-function blankRow(model: string): TokenUsageRow {
-  return { model, input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+function blankRow(agent: string, model: string): TokenUsageRow {
+  return { agent, model, input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
 }
 
 export function aggregateTokenUsage(metas: unknown[]): TokenUsagePayload {
-  const rowsByModel = new Map<string, TokenUsageRow>()
+  const rowsByKey = new Map<string, TokenUsageRow>()
   const seenMessageIds = new Set<string>()
 
   for (const metaUnknown of metas) {
@@ -67,6 +68,7 @@ export function aggregateTokenUsage(metas: unknown[]): TokenUsagePayload {
     }
 
     const model = extractModelString(metaUnknown) ?? "unknown/unknown"
+    const agent = readString(metaUnknown.agent) ?? "unknown"
     const tokens = isRecord(metaUnknown.tokens) ? metaUnknown.tokens : null
     const cache = tokens && isRecord(tokens.cache) ? tokens.cache : null
     const input = clampToken(tokens?.input)
@@ -76,17 +78,19 @@ export function aggregateTokenUsage(metas: unknown[]): TokenUsagePayload {
     const cacheWrite = clampToken(cache?.write)
     const total = input + output + reasoning + cacheRead + cacheWrite
 
-    const row = rowsByModel.get(model) ?? blankRow(model)
+    // Use both agent and model as key for grouping
+    const key = `${agent}:${model}`
+    const row = rowsByKey.get(key) ?? blankRow(agent, model)
     row.input += input
     row.output += output
     row.reasoning += reasoning
     row.cacheRead += cacheRead
     row.cacheWrite += cacheWrite
     row.total += total
-    rowsByModel.set(model, row)
+    rowsByKey.set(key, row)
   }
 
-  const rows = Array.from(rowsByModel.values()).sort((a, b) => {
+  const rows = Array.from(rowsByKey.values()).sort((a, b) => {
     if (b.total !== a.total) return b.total - a.total
     return a.model.localeCompare(b.model)
   })
