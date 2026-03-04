@@ -1759,6 +1759,7 @@ export default function App() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th>AGENT</th>
                     <th>MODEL</th>
                     <th>INPUT</th>
                     <th>OUTPUT</th>
@@ -1769,6 +1770,7 @@ export default function App() {
                 </thead>
                 <tbody>
                   <tr>
+                    <td className="mono">-</td>
                     <td className="mono">TOTAL</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.input)}</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.output)}</td>
@@ -1779,7 +1781,7 @@ export default function App() {
 
                   {tokenUsageRowsSorted.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="muted" style={{ padding: 16 }}>
+                      <td colSpan={7} className="muted" style={{ padding: 16 }}>
                         No token usage detected yet.
                       </td>
                     </tr>
