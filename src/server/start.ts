@@ -120,7 +120,24 @@ async function main() {
 
   app.route('/api', createApi({ store, storageRoot, projectRoot: project, storageBackend, getStoreForSource }))
 
-  const distRoot = join(import.meta.dir, '../../dist')
+  // Determine dist root - when running via bunx, we need to find the correct dist folder
+  let distRoot: string
+  const scriptDir = import.meta.dir
+  const localDist = join(scriptDir, '../../dist')
+  const projectDist = join(project, 'dist')
+  
+  // Check if local dist exists and has index.html
+  if (fs.existsSync(join(localDist, 'index.html'))) {
+    distRoot = localDist
+  } else if (fs.existsSync(join(projectDist, 'index.html'))) {
+    // Fallback to project dist (useful when running from cloned repo)
+    distRoot = projectDist
+  } else {
+    // Last resort: use localDist even if it doesn't exist (will result in 404)
+    distRoot = localDist
+    console.error(`Warning: dist folder not found at ${distRoot}`)
+    console.error(`Please make sure the project has been built: bun run build`)
+  }
 
   // SPA fallback middleware
   app.use('*', async (c, next) => {
@@ -174,13 +191,27 @@ async function main() {
     return types[ext] || 'text/plain'
   }
 
-  Bun.serve({
+  // Store server instance for graceful shutdown
+  const server = Bun.serve({
     fetch: app.fetch,
     hostname: host,
     port,
   })
 
   console.log(`Server running on http://${host}:${port}`)
+
+  // Handle graceful shutdown
+  const shutdown = () => {
+    console.log('\nShutting down server...')
+    server.stop()
+    process.exit(0)
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
+  process.on('exit', () => {
+    server.stop()
+  })
 }
 
 main()
