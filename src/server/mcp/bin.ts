@@ -25,19 +25,13 @@ const httpOnly = args.includes("--http-only");
 const filteredArgs = args.filter(arg => arg !== "--http-only");
 
 // Check for subcommands
+// Check for subcommands
 if (filteredArgs[0] === "cli:sessions") {
-  // Run sessions CLI
-  const sessionsScript = join(__dirname, "..", "..", "cli", "sessions.ts");
-  const result = spawn("bun", ["run", sessionsScript], {
-    stdio: "inherit",
-    windowsHide: false,
-  });
-  
-  result.on("exit", (code) => {
-    process.exit(code || 0);
-  });
+  // Run sessions CLI directly (no spawn to avoid recursion)
+  import("../../cli/sessions.js").catch(console.error);
 } else if (httpOnly) {
   // HTTP server only mode - run start.ts directly
+  import("../start.js").catch(console.error);
   // Import and run the HTTP server
   import("../start.js").catch(console.error);
 } else {
@@ -51,9 +45,10 @@ async function main() {
   const { selectStorageBackend, getLegacyStorageRootForBackend } = await import("../../ingest/storage-backend.js");
   const { Hono } = await import("hono");
   const { createApi } = await import("../api.js");
-  const { createDashboardStore, type DashboardStore } = await import("../dashboard.js");
-  const { addOrUpdateSource, listSources } = await import("../../ingest/sources-registry.js");
+  const { createDashboardStore } = await import("../dashboard.js");
+  type DashboardStore = Awaited<ReturnType<typeof createDashboardStore>>;
   const { findAvailablePort } = await import("../../cli/ports.js");
+  const { addOrUpdateSource, listSources } = await import("../../ingest/sources-registry.js");
 
   // Parse --project argument
   const projectIndex = filteredArgs.indexOf("--project");
