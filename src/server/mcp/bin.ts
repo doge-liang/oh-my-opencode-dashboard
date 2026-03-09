@@ -11,6 +11,7 @@
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import * as fs from "node:fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -48,46 +49,67 @@ if (args[0] === "cli:sessions") {
   const storageBackend = selectStorageBackend();
   const storageRoot = getLegacyStorageRootForBackend(storageBackend);
 
-  // Start HTTP server in the background (use start.ts, not bin.ts!)
-  const startScript = join(__dirname, "..", "start.ts");
-  console.error("[MCP] Starting HTTP dashboard server...");
-  const httpProcess = spawn("bun", ["run", startScript, "--project", projectRoot], {
-    detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
-    windowsHide: true,
-  });
+  // Start HTTP server in the background
+  // When running via bunx, we need to find the correct start.ts
+  let startScript: string | null = null;
+  const localStart = join(__dirname, "..", "start.ts");
+  const projectStart = join(projectRoot, "src", "server", "start.ts");
+  
+  // Check if local start.ts exists (when running from cloned repo)
+  if (fs.existsSync(localStart)) {
+    startScript = localStart;
+  } else if (fs.existsSync(projectStart)) {
+    // Fallback: use the project's start.ts if it exists
+    startScript = projectStart;
+  }
+  
+  let httpProcess: ReturnType<typeof spawn> | null = null;
+  
+  if (startScript) {
+    console.error("[MCP] Starting HTTP dashboard server...");
+    httpProcess = spawn("bun", ["run", startScript, "--project", projectRoot], {
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+  } else {
+    console.error("[MCP] Warning: Cannot find start.ts, HTTP server will not be started");
+    console.error("[MCP] Please ensure the project has been cloned or start.ts exists");
+  }
 
   let serverUrl: string | null = null;
 
   // Capture server URL from output
-  httpProcess.stdout?.on("data", (data: Buffer) => {
-    const output = data.toString();
-    const match = output.match(/Server running on (http:\/\/[^\s]+)/);
-    if (match) {
-      serverUrl = match[1];
-      console.error(`[MCP] Dashboard available at: ${serverUrl}`);
-      
-      // Open browser
-      setTimeout(() => {
-        if (serverUrl) {
-          const platform = process.platform;
-          console.error(`[MCP] Opening browser...`);
-          
-          if (platform === "win32") {
-            spawn("cmd", ["/c", "start", serverUrl], { detached: true, stdio: "ignore" });
-          } else if (platform === "darwin") {
-            spawn("open", [serverUrl], { detached: true, stdio: "ignore" });
-          } else {
-            spawn("xdg-open", [serverUrl], { detached: true, stdio: "ignore" });
+  if (httpProcess) {
+    httpProcess.stdout?.on("data", (data: Buffer) => {
+      const output = data.toString();
+      const match = output.match(/Server running on (http:\/\/[^\s]+)/);
+      if (match) {
+        serverUrl = match[1];
+        console.error(`[MCP] Dashboard available at: ${serverUrl}`);
+        
+        // Open browser
+        setTimeout(() => {
+          if (serverUrl) {
+            const platform = process.platform;
+            console.error(`[MCP] Opening browser...`);
+            
+            if (platform === "win32") {
+              spawn("cmd", ["/c", "start", serverUrl], { detached: true, stdio: "ignore" });
+            } else if (platform === "darwin") {
+              spawn("open", [serverUrl], { detached: true, stdio: "ignore" });
+            } else {
+              spawn("xdg-open", [serverUrl], { detached: true, stdio: "ignore" });
+            }
           }
-        }
-      }, 1000);
-    }
-  });
+        }, 1000);
+      }
+    });
 
-  httpProcess.stderr?.on("data", (data: Buffer) => {
-    console.error(`[HTTP] ${data.toString().trim()}`);
-  });
+    httpProcess.stderr?.on("data", (data: Buffer) => {
+      console.error(`[HTTP] ${data.toString().trim()}`);
+    });
+  }
 
   // Create MCP Server
   const server = createMcpServer({
