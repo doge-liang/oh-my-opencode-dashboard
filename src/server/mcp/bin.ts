@@ -6,6 +6,7 @@
  *   oh-my-opencode-dashboard                          # Start MCP with current directory
  *   oh-my-opencode-dashboard --project /path          # Start MCP with specified directory
  *   oh-my-opencode-dashboard cli:sessions             # List active sessions
+ *   oh-my-opencode-dashboard --http-only --project /path  # Start HTTP server only (no MCP)
  */
 
 import { spawn } from "child_process";
@@ -19,8 +20,12 @@ const __dirname = dirname(__filename);
 // Parse command line arguments
 const args = process.argv.slice(2);
 
+// Check for --http-only flag (internal use for spawning HTTP server)
+const httpOnly = args.includes("--http-only");
+const filteredArgs = args.filter(arg => arg !== "--http-only");
+
 // Check for subcommands
-if (args[0] === "cli:sessions") {
+if (filteredArgs[0] === "cli:sessions") {
   // Run sessions CLI
   const sessionsScript = join(__dirname, "..", "..", "cli", "sessions.ts");
   const result = spawn("bun", ["run", sessionsScript], {
@@ -31,6 +36,25 @@ if (args[0] === "cli:sessions") {
   result.on("exit", (code) => {
     process.exit(code || 0);
   });
+} else if (httpOnly) {
+  // HTTP server only mode (spawned by MCP server)
+  // Import and run start.ts directly by executing it
+  const startScript = join(__dirname, "..", "start.ts");
+  
+  if (fs.existsSync(startScript)) {
+    // Spawn start.ts as a separate process
+    const httpProcess = spawn("bun", ["run", startScript, ...filteredArgs], {
+      stdio: "inherit",
+      windowsHide: false,
+    });
+    
+    httpProcess.on("exit", (code) => {
+      process.exit(code || 0);
+    });
+  } else {
+    console.error(`[HTTP] Error: Cannot find start.ts at ${startScript}`);
+    process.exit(1);
+  }
 } else {
   // Start MCP Server
   const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
@@ -38,10 +62,10 @@ if (args[0] === "cli:sessions") {
   const { selectStorageBackend, getLegacyStorageRootForBackend } = await import("../../ingest/storage-backend.js");
 
   // Parse --project argument
-  const projectIndex = args.indexOf("--project");
+  const projectIndex = filteredArgs.indexOf("--project");
   let projectRoot: string;
-  if (projectIndex !== -1 && args[projectIndex + 1]) {
-    projectRoot = args[projectIndex + 1];
+  if (projectIndex !== -1 && filteredArgs[projectIndex + 1]) {
+    projectRoot = filteredArgs[projectIndex + 1];
   } else {
     projectRoot = process.cwd();
   }
@@ -49,38 +73,25 @@ if (args[0] === "cli:sessions") {
   const storageBackend = selectStorageBackend();
   const storageRoot = getLegacyStorageRootForBackend(storageBackend);
 
-  // Start HTTP server in the background
-  // When running via bunx, we need to find the correct start.ts
-  let startScript: string | null = null;
-  const localStart = join(__dirname, "..", "start.ts");
-  const projectStart = join(projectRoot, "src", "server", "start.ts");
+  // Start HTTP server in the background by spawning ourselves with --http-only flag
+  const startScript = join(__dirname, "..", "start.ts");
   
-  // Check if local start.ts exists (when running from cloned repo)
-  if (fs.existsSync(localStart)) {
-    startScript = localStart;
-  } else if (fs.existsSync(projectStart)) {
-    // Fallback: use the project's start.ts if it exists
-    startScript = projectStart;
-  }
-  
-  let httpProcess: ReturnType<typeof spawn> | null = null;
-  
-  if (startScript) {
+  if (fs.existsSync(startScript)) {
     console.error("[MCP] Starting HTTP dashboard server...");
-    httpProcess = spawn("bun", ["run", startScript, "--project", projectRoot], {
+    const httpProcess = spawn(process.execPath, [
+      ...process.execArgv,
+      __filename,
+      "--http-only",
+      ...filteredArgs
+    ], {
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
-  } else {
-    console.error("[MCP] Warning: Cannot find start.ts, HTTP server will not be started");
-    console.error("[MCP] Please ensure the project has been cloned or start.ts exists");
-  }
 
-  let serverUrl: string | null = null;
+    let serverUrl: string | null = null;
 
-  // Capture server URL from output
-  if (httpProcess) {
+    // Capture server URL from output
     httpProcess.stdout?.on("data", (data: Buffer) => {
       const output = data.toString();
       const match = output.match(/Server running on (http:\/\/[^\s]+)/);
@@ -109,6 +120,8 @@ if (args[0] === "cli:sessions") {
     httpProcess.stderr?.on("data", (data: Buffer) => {
       console.error(`[HTTP] ${data.toString().trim()}`);
     });
+  } else {
+    console.error("[MCP] Warning: Cannot find start.ts, HTTP server will not be started");
   }
 
   // Create MCP Server
