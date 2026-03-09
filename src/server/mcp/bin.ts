@@ -183,6 +183,19 @@ async function main() {
 
     serverUrl = `http://${host}:${port}`;
     console.error(`[MCP] Dashboard available at: ${serverUrl}`);
+
+    // Open browser using 'open' package
+    setTimeout(async () => {
+      if (serverUrl) {
+        try {
+          const open = (await import("open")).default;
+          await open(serverUrl);
+          console.error(`[MCP] Browser opened: ${serverUrl}`);
+        } catch (err) {
+          console.error(`[MCP] Could not auto-open browser. Please open manually: ${serverUrl}`);
+        }
+      }
+    }, 1500);
   }
 
   // Create MCP Server
