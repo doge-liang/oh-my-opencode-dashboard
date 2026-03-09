@@ -22,7 +22,7 @@
     "build:api": "bun run src/server/build.ts",
     "prepublishOnly": "bun run build && bun test",
     "start": "bun run src/server/start.ts",
-    "mcp": "bun run src/server/mcp/index.ts",
+    "mcp": "bun run src/server/mcp/bin.ts",
     "cli:sessions": "bun run src/cli/sessions.ts",
     "test": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
