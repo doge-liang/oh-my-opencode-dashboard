@@ -1,0 +1,176 @@
+{
+    // oh-my-opencode.jsonc - oh-my-opencode 配置文件
+    //
+    // Benchmark 数据 (2026年2月):
+    // - MiniMax M2.5: SWE-bench 80.2% (性价比王，100 TPS) ← 主力模型
+    // - GLM-5: SWE-bench 77.8% (逼近 Claude Opus 4.5)
+    // - Kimi K2.5: SWE-bench 76.8%
+    //
+    // 模型选择策略: 优先使用 MiniMax M2.5 (你的订阅)
+    "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+    // ===== 组件开关 =====
+    "disabled_agents": [],
+    "disabled_mcps": [],
+    "disabled_skills": [],
+    "disabled_hooks": [],
+    "disabled_commands": [],
+    // ===== Sisyphus Agent 配置 =====
+    "sisyphus_agent": {
+        "disabled": false,
+        "planner_enabled": true,
+        "replace_plan": true
+    },
+    // ===== Agent 配置 =====
+    "agents": {
+        // 主编排 - 保持 Kimi K2.5 (只做路由，不需要最强)
+        "sisyphus": {
+            // "model": "kimi-for-coding/k2p5",
+            // "model": "bailian-coding-plan/glm-5",
+            "model": "zhipuai-coding-plan/glm-5"
+        },
+        // 主执行 - MiniMax M2.5 (80.2% SWE-bench, 100 TPS)
+        "atlas": {
+            "model": "minimax-cn-coding-plan/MiniMax-M2.5"
+        },
+        // 规划 - 保持 Kimi K2.5 (规划不需要极致编程)
+        "prometheus": {
+            "model": "zhipuai-coding-plan/glm-5"
+            // "model": "bailian-coding-plan/glm-5",
+        },
+        // 调试 - 保持 GPT-5.2 (调试能力最强)
+        "oracle": {
+            "model": "openai/gpt-5.2",
+            "variant": "high"
+        },
+        // 测试生成 - MiniMax M2.5
+        "metis": {
+            "model": "minimax-cn-coding-plan/MiniMax-M2.5"
+        },
+        // 快速搜索 - MiniMax M2.5 (100 TPS 超快)
+        "explore": {
+            "model": "minimax-cn-coding-plan/MiniMax-M2.5"
+        },
+        // 文档检索
+        "librarian": {
+            // "model": "bailian-coding-plan/glm-5",
+            "model": "zhipuai-coding-plan/glm-5"
+        },
+        // 多模态 - 保持 Gemini
+        "multimodal-looker": {
+            "model": "google/gemini-3.1-pro-preview",
+            "modalities": {
+                "input": ["text", "image", "pdf"],
+                "output": ["text"]
+            }
+        },
+        // 备用 - Hephaestus：备用构建代理
+        "hephaestus": {
+            "model": "openai/gpt-5.2-codex",
+            "variant": "medium"
+        },
+        // 备用 - Momus：备用分析代理
+        "momus": {
+            "model": "openai/gpt-5.2",
+            "variant": "medium"
+        }
+    },
+    // ===== Categories 配置 =====
+    "categories": {
+        // UI/UX - Gemini 多模态强
+        "visual-engineering": {
+            "model": "google/gemini-3.1-pro-preview"
+        },
+        // 后端/架构 - MiniMax M2.5
+        "business-logic": {
+            "model": "minimax-cn-coding-plan/MiniMax-M2.5"
+        },
+        // 写作 - Gemini 3 pro
+        "writing": {
+            "model": "google/gemini-3.1-pro-preview"
+        },
+        // 快速任务 - MiniMax M2.5
+        "quick": {
+            "model": "minimax-cn-coding-plan/MiniMax-M2.5"
+        },
+        // 测试 - MiniMax M2.5
+        "testing": {
+            "model": "minimax-cn-coding-plan/MiniMax-M2.5"
+        },
+        // 调试 - 保持 Codex
+        "debug": {
+            "model": "openai/gpt-5.2-codex"
+        },
+        // 多模态 - Gemini
+        "multimodal": {
+            "model": "google/gemini-3.1-pro-preview"
+        },
+        // 规划
+        "planning": {
+            "model": "zhipuai-coding-plan/glm-5"
+            // "model": "bailian-coding-plan/glm-5",
+        },
+        // 数据分析 - GLM-5
+        "data-analysis": {
+            "model": "zhipuai-coding-plan/glm-5"
+            // "model": "bailian-coding-plan/glm-5",
+        },
+        // 高难度任务 - Codex
+        "ultrabrain": {
+            "model": "openai/gpt-5.2-codex",
+            "variant": "xhigh"
+        },
+        // 深度推理 - Codex
+        "deep": {
+            "model": "openai/gpt-5.2-codex",
+            "variant": "medium"
+        },
+        // 创意 - Gemini
+        "artistry": {
+            "model": "google/gemini-3.1-pro-preview",
+            "variant": "max"
+        },
+        // 低复杂度 - Codex
+        "unspecified-low": {
+            "model": "zhipuai-coding-plan/glm-5"
+            // "model": "bailian-coding-plan/glm-5",
+        },
+        // 高复杂度 - Codex
+        "unspecified-high": {
+            "model": "openai/gpt-5.2-codex",
+            "variant": "medium"
+        },
+        "systems-lowlevel": {
+            "model": "openai/gpt-5.2-codex",
+            "variant": "high",
+            "prompt_append": "用于嵌入式、驱动、内核、并发、内存模型、ABI、Make/Kconfig、硬件交互。优先正确性、边界条件、锁/中断/生命周期和可验证性。"
+        }
+    },
+    // ===== LSP 配置 =====
+    "lsp": {
+        "json": {
+            "command": [
+                "npx",
+                "--yes",
+                "vscode-json-languageserver",
+                "--stdio"
+            ],
+            "extensions": [".json", ".jsonc"]
+        },
+        // Marksman - Markdown LSP (推荐: 独立二进制，安装简单)
+        // 安装: scoop install marksman (Windows) | brew install marksman (macOS)
+        "markdown": {
+            "command": ["marksman", "server"],
+            "extensions": [".md"]
+        }
+        // VSCode Markdown LSP (备选方案 - 需要额外配置)
+        // 注意: vscode-markdown-languageserver 无 bin 字段，不能直接用 npx 执行
+        // 如需使用，请先全局安装: npm install -g vscode-markdown-languageserver
+        // 然后取消注释以下配置并修改路径:
+        // "markdown-vscode": {
+        //     "command": ["node", "<全局安装路径>/vscode-markdown-languageserver/dist/node/main.js", "--stdio"],
+        //     "extensions": [".md"]
+        // }
+        // Windows 默认路径: %APPDATA%\npm\node_modules\vscode-markdown-languageserver\dist\node\main.js
+        // macOS/Linux 默认路径: /usr/local/lib/node_modules/vscode-markdown-languageserver/dist/node/main.js
+    }
+}
