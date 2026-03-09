@@ -6,7 +6,6 @@
  *   oh-my-opencode-dashboard                          # Start MCP with current directory
  *   oh-my-opencode-dashboard --project /path          # Start MCP with specified directory
  *   oh-my-opencode-dashboard cli:sessions             # List active sessions
- *   oh-my-opencode-dashboard --http-only --project /path  # Start HTTP server only (no MCP)
  */
 
 import { spawn } from "child_process";
@@ -20,12 +19,8 @@ const __dirname = dirname(__filename);
 // Parse command line arguments
 const args = process.argv.slice(2);
 
-// Check for --http-only flag (internal use for spawning HTTP server)
-const httpOnly = args.includes("--http-only");
-const filteredArgs = args.filter(arg => arg !== "--http-only");
-
 // Check for subcommands
-if (filteredArgs[0] === "cli:sessions") {
+if (args[0] === "cli:sessions") {
   // Run sessions CLI
   const sessionsScript = join(__dirname, "..", "..", "cli", "sessions.ts");
   const result = spawn("bun", ["run", sessionsScript], {
@@ -36,36 +31,21 @@ if (filteredArgs[0] === "cli:sessions") {
   result.on("exit", (code) => {
     process.exit(code || 0);
   });
-} else if (httpOnly) {
-  // HTTP server only mode (spawned by MCP server)
-  // Import and run start.ts directly by executing it
-  const startScript = join(__dirname, "..", "start.ts");
-  
-  if (fs.existsSync(startScript)) {
-    // Spawn start.ts as a separate process
-    const httpProcess = spawn("bun", ["run", startScript, ...filteredArgs], {
-      stdio: "inherit",
-      windowsHide: false,
-    });
-    
-    httpProcess.on("exit", (code) => {
-      process.exit(code || 0);
-    });
-  } else {
-    console.error(`[HTTP] Error: Cannot find start.ts at ${startScript}`);
-    process.exit(1);
-  }
 } else {
   // Start MCP Server
+  main().catch(console.error);
+}
+
+async function main() {
   const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
   const { createMcpServer } = await import("./server.js");
   const { selectStorageBackend, getLegacyStorageRootForBackend } = await import("../../ingest/storage-backend.js");
 
   // Parse --project argument
-  const projectIndex = filteredArgs.indexOf("--project");
+  const projectIndex = args.indexOf("--project");
   let projectRoot: string;
-  if (projectIndex !== -1 && filteredArgs[projectIndex + 1]) {
-    projectRoot = filteredArgs[projectIndex + 1];
+  if (projectIndex !== -1 && args[projectIndex + 1]) {
+    projectRoot = args[projectIndex + 1];
   } else {
     projectRoot = process.cwd();
   }
@@ -73,17 +53,12 @@ if (filteredArgs[0] === "cli:sessions") {
   const storageBackend = selectStorageBackend();
   const storageRoot = getLegacyStorageRootForBackend(storageBackend);
 
-  // Start HTTP server in the background by spawning ourselves with --http-only flag
+  // Start HTTP server in the background by spawning start.ts directly
   const startScript = join(__dirname, "..", "start.ts");
   
   if (fs.existsSync(startScript)) {
     console.error("[MCP] Starting HTTP dashboard server...");
-    const httpProcess = spawn(process.execPath, [
-      ...process.execArgv,
-      __filename,
-      "--http-only",
-      ...filteredArgs
-    ], {
+    const httpProcess = spawn("bun", ["run", startScript, "--project", projectRoot], {
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
@@ -122,6 +97,7 @@ if (filteredArgs[0] === "cli:sessions") {
     });
   } else {
     console.error("[MCP] Warning: Cannot find start.ts, HTTP server will not be started");
+    console.error(`[MCP] Expected location: ${startScript}`);
   }
 
   // Create MCP Server
