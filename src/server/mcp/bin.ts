@@ -25,14 +25,11 @@ const httpOnly = args.includes("--http-only");
 const filteredArgs = args.filter(arg => arg !== "--http-only");
 
 // Check for subcommands
-// Check for subcommands
 if (filteredArgs[0] === "cli:sessions") {
   // Run sessions CLI directly (no spawn to avoid recursion)
   import("../../cli/sessions.js").catch(console.error);
 } else if (httpOnly) {
   // HTTP server only mode - run start.ts directly
-  import("../start.js").catch(console.error);
-  // Import and run the HTTP server
   import("../start.js").catch(console.error);
 } else {
   // Start MCP Server (which also starts HTTP server)
