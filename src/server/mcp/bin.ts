@@ -9,7 +9,7 @@
  *   oh-my-opencode-dashboard --http-only --project /path  # Start HTTP server only (no MCP)
  */
 
-import { spawn } from "child_process";
+
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import * as fs from "node:fs";
@@ -188,25 +188,11 @@ async function main() {
     serverUrl = `http://${host}:${port}`;
     console.error(`[MCP] Dashboard available at: ${serverUrl}`);
 
-    // Open browser
-    setTimeout(() => {
-      if (serverUrl) {
-        console.error(`[MCP] Opening browser...`);
-        const platform = process.platform;
-        
-        if (platform === "win32") {
-          spawn("cmd", ["/c", "start", serverUrl], { detached: true, stdio: "ignore" });
-        } else if (platform === "darwin") {
-          spawn("open", [serverUrl], { detached: true, stdio: "ignore" });
-        } else {
-          spawn("xdg-open", [serverUrl], { detached: true, stdio: "ignore" });
-        }
-      }
-    }, 1000);
+    // Don't auto-open browser to avoid potential bunx recursion issues
   }
 
   // Create MCP Server
-  const server = createMcpServer({
+  const mcpServer = createMcpServer({
     projectRoot,
     storageRoot,
     storageBackend,
@@ -220,7 +206,7 @@ async function main() {
   console.error(`[MCP] Storage root: ${storageRoot}`);
   console.error(`[MCP] Storage backend: ${storageBackend.kind}`);
 
-  await server.connect(transport);
+  await mcpServer.connect(transport);
 
   console.error("[MCP] Server connected and ready");
 }
