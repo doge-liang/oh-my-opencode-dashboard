@@ -14,7 +14,7 @@ describe("MCP Server", () => {
 
     it("should have correct package.json scripts", async () => {
       const pkg = await import("../../../package.json", { with: { type: "json" } });
-      expect(pkg.default.scripts.mcp).toBe("bun run src/server/mcp/index.ts");
+      expect(pkg.default.scripts.mcp).toBe("bun run src/server/mcp/bin.ts");
     });
   });
 
