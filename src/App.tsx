@@ -88,6 +88,7 @@ type TokenUsageTotals = {
 };
 
 type TokenUsageRow = {
+  agent: string;
   model: string;
   input: number;
   output: number;
@@ -862,7 +863,7 @@ function toDashboardPayload(json: unknown): DashboardPayload {
           .map((row): TokenUsageRow | null => {
             if (!row || typeof row !== "object") return null;
             const r = row as Record<string, unknown>;
-
+            const agent = toNonEmptyString(r.agent) ?? "unknown";
             const model = toNonEmptyString(r.model ?? r.id ?? r.key);
             if (!model) return null;
 
@@ -876,7 +877,7 @@ function toDashboardPayload(json: unknown): DashboardPayload {
             const totalFromServer = totalKey === undefined || totalKey === null ? null : toNonNegativeCount(totalKey);
             const total = typeof totalFromServer === "number" ? totalFromServer : input + output + reasoning + cacheRead + cacheWrite;
 
-            return { model, input, output, reasoning, cacheRead, cacheWrite, total };
+            return { agent, model, input, output, reasoning, cacheRead, cacheWrite, total };
           })
           .filter((r): r is TokenUsageRow => r !== null)
       : [];
