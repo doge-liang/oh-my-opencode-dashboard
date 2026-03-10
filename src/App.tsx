@@ -1752,7 +1752,7 @@ export default function App() {
 
           <section className="card">
             <div className="cardHeader">
-              <h2>Token usage</h2>
+              <h2>Total Token Usage</h2>
               <span className="badge">{data.tokenUsage.rows.length}</span>
             </div>
 
@@ -1760,8 +1760,6 @@ export default function App() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>AGENT</th>
-                    <th>MODEL</th>
                     <th>INPUT</th>
                     <th>OUTPUT</th>
                     <th>REASONING</th>
@@ -1771,7 +1769,6 @@ export default function App() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="mono">-</td>
                     <td className="mono">TOTAL</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.input)}</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.output)}</td>
@@ -1782,7 +1779,7 @@ export default function App() {
 
                   {tokenUsageRowsSorted.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="muted" style={{ padding: 16 }}>
+                      <td colSpan={5} className="muted" style={{ padding: 16 }}>
                         No token usage detected yet.
                       </td>
                     </tr>
@@ -1794,7 +1791,7 @@ export default function App() {
             {tokenUsageRowsSorted.length > 0 ? (
               <details className="details">
                 <summary className="detailsSummary">
-                  <span className="detailsTitle">Model breakdown ({tokenUsageRowsSorted.length})</span>
+                  <span className="detailsTitle">Model Breakdown ({tokenUsageRowsSorted.length})</span>
                   <span className="chev" aria-hidden="true" />
                 </summary>
                 <div className="detailsBody">
