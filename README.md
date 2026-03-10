@@ -166,6 +166,7 @@ This dashboard is designed to avoid sensitive data:
 - If the dashboard seems stale in SQLite mode, note that OpenCode may be writing via WAL (`opencode.db-wal`, `opencode.db-shm`). Polling is the baseline; file watching is best-effort.
 - If SQLite mode fails and you have legacy storage present, the dashboard will fall back automatically. If you only have SQLite, try closing OpenCode (to release locks) and reload the dashboard.
 
+- If UI changes are not reflecting after a GitHub push, bunx may be caching a stale compiled executable. On Windows, clear the cache: `rm -rf ~/AppData/Local/Temp/bunx-*-oh-my-opencode-dashboard*`. A version bump in package.json also helps trigger a fresh download.
 ## Publishing (Maintainers)
 
 This package is published via GitHub Actions using npm Trusted Publishing (OIDC) (no `NPM_TOKEN`).
