@@ -1,6 +1,6 @@
 {
   "name": "oh-my-opencode-dashboard",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "MCP server for visualizing OpenCode & OhMyOpenCode Agent progress",
   "license": "SUL-1.0",
   "repository": {
