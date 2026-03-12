@@ -180,6 +180,10 @@ async function main() {
       hostname: host,
       port,
     });
+      fetch: app.fetch,
+      hostname: host,
+      port,
+    });
 
     serverUrl = `http://${host}:${port}`;
     console.error(`[MCP] Dashboard available at: ${serverUrl}`);
@@ -206,6 +210,35 @@ async function main() {
   });
 
   // Create stdio transport
+  const transport = new StdioServerTransport();
+
+  // Handle process termination
+  const cleanup = async () => {
+    console.error("[MCP] Cleaning up and shutting down...");
+    if (server) {
+      server.stop();
+      console.error("[MCP] HTTP server stopped");
+    }
+    process.exit(0);
+  };
+
+  // Listen for MCP connection close (when OpenCode exits)
+  transport.onclose = () => {
+    console.error("[MCP] Connection closed, shutting down...");
+    cleanup();
+  };
+
+  // Also handle SIGINT/SIGTERM
+  process.on("SIGINT", cleanup);
+  process.on("SIGTERM", cleanup);
+  process.on("disconnect", cleanup);
+
+  // Handle stdin close (parent process died)
+  process.stdin.on("end", () => {
+    console.error("[MCP] stdin closed, parent process likely exited");
+    cleanup();
+  });
+
   const transport = new StdioServerTransport();
 
   // Connect and run
