@@ -68,6 +68,7 @@ describe("deriveTokenUsage token usage", () => {
     // #then
     expect(result.rows.length).toBe(1)
     expect(result.rows[0]).toEqual({
+      agent: "unknown",
       model: "openai/gpt-5.2",
       input: 5,
       output: 1,

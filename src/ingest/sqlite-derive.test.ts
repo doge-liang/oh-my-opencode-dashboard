@@ -205,6 +205,7 @@ describe("sqlite derive helpers", () => {
     if (!result.ok) return
     expect(result.value.rows).toEqual([
       {
+        agent: "unknown",
         model: "openai/gpt-5.3",
         input: 7,
         output: 3,
@@ -214,6 +215,7 @@ describe("sqlite derive helpers", () => {
         total: 13,
       },
       {
+        agent: "unknown",
         model: "anthropic/claude-sonnet-4-5",
         input: 2,
         output: 3,

@@ -75,7 +75,17 @@ describe("assertAllowedPath", () => {
     fs.writeFileSync(outsideFile, "nope", "utf8")
 
     const linkPath = path.join(allowed, "link.txt")
-    fs.symlinkSync(outsideFile, linkPath)
+    
+    // Skip test on Windows if no symlink permission
+    try {
+      fs.symlinkSync(outsideFile, linkPath)
+    } catch (err) {
+      if (process.platform === "win32") {
+        console.log("Skipping symlink escape test: no permission on Windows")
+        return
+      }
+      throw err
+    }
 
     expect(() =>
       assertAllowedPath({

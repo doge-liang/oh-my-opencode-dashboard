@@ -320,6 +320,7 @@ describe('toDashboardPayload', () => {
           total: 465,
         },
         {
+          agent: "unknown",
           model: "openai/gpt-5.2",
           input: 20,
           output: 40,
@@ -347,6 +348,7 @@ describe('toDashboardPayload', () => {
       },
       rows: [
         {
+          agent: "unknown",
           model: "anthropic/claude-opus-4-5",
           input: 100,
           output: 300,
@@ -356,6 +358,7 @@ describe('toDashboardPayload', () => {
           total: 465,
         },
         {
+          agent: "unknown",
           model: "openai/gpt-5.2",
           input: 20,
           output: 40,

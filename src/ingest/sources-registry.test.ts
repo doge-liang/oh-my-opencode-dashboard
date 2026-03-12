@@ -88,7 +88,17 @@ describe("sources registry", () => {
     const storageRoot = mkStorageRoot()
     const realRoot = mkProjectRoot("omo-dashboard-real-")
     const linkRoot = path.join(os.tmpdir(), `omo-dashboard-link-${Date.now()}`)
-    fs.symlinkSync(realRoot, linkRoot)
+    
+    // Skip test on Windows if no symlink permission
+    try {
+      fs.symlinkSync(realRoot, linkRoot)
+    } catch (err) {
+      if (process.platform === "win32") {
+        console.log("Skipping symlink test: no permission on Windows")
+        return
+      }
+      throw err
+    }
 
     const now = vi.spyOn(Date, "now")
     now.mockReturnValueOnce(1_000)

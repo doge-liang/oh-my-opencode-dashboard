@@ -77,6 +77,7 @@ async function main() {
   }
 
   let serverUrl: string | null = null;
+  let server: ReturnType<typeof Bun.serve> | null = null;
 
   if (port > 0) {
     const app = new Hono();
@@ -175,11 +176,7 @@ async function main() {
       return c.notFound();
     });
 
-    const server = Bun.serve({
-      fetch: app.fetch,
-      hostname: host,
-      port,
-    });
+    server = Bun.serve({
       fetch: app.fetch,
       hostname: host,
       port,
@@ -238,8 +235,6 @@ async function main() {
     console.error("[MCP] stdin closed, parent process likely exited");
     cleanup();
   });
-
-  const transport = new StdioServerTransport();
 
   // Connect and run
   console.error(`[MCP] Starting MCP server for project: ${projectRoot}`);
